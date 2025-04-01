@@ -2,7 +2,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { User } = require('../models');
 
-// Registrazione utente
+// ✅ REGISTRAZIONE UTENTE
 exports.register = async (req, res) => {
   try {
     const {
@@ -17,15 +17,12 @@ exports.register = async (req, res) => {
       confermaPassword,
     } = req.body;
 
-    // Controllo che le password coincidano
     if (password !== confermaPassword) {
       return res.status(400).json({ error: 'Le password non corrispondono' });
     }
 
-    // Hash della password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Creazione dell'utente
     const newUser = await User.create({
       nome,
       cognome,
@@ -37,36 +34,54 @@ exports.register = async (req, res) => {
       password: hashedPassword,
     });
 
-    res.status(201).json({ message: 'Registrazione completata', userId: newUser.id });
+    res.status(201).json({
+      message: 'Registrazione completata',
+      userId: newUser.id,
+    });
   } catch (error) {
+    console.error('❌ Errore nella registrazione:', error.message);
     res.status(500).json({ error: error.message });
   }
 };
 
-// Login utente
+// ✅ LOGIN UTENTE
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
+    console.log('📩 Email ricevuta:', email);
 
-    // Cerca l'utente in base all'email
     const user = await User.findOne({ where: { email } });
+
     if (!user) {
+      console.log('❌ Utente non trovato nel database');
       return res.status(400).json({ error: 'Credenziali non valide' });
     }
 
-    // Confronta la password inserita con quella salvata (hashata)
     const match = await bcrypt.compare(password, user.password);
+
     if (!match) {
+      console.log('❌ Password errata');
       return res.status(400).json({ error: 'Credenziali non valide' });
     }
 
-    // Genera un token JWT valido per 1 ora
-    const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET, {
-      expiresIn: '1h',
-    });
+    // ✅ Token con tutti i dati utente utili per la dashboard
+    const token = jwt.sign(
+      {
+        id: user.id,
+        email: user.email,
+        nome: user.nome,
+        telefono: user.telefono,
+        codiceFiscale: user.codiceFiscale,
+        indirizzo: user.indirizzo,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
 
+    console.log('✅ Login riuscito per:', user.email);
     res.json({ token, message: 'Login effettuato con successo' });
   } catch (error) {
+    console.error('❌ Errore nel login:', error.message);
     res.status(500).json({ error: error.message });
   }
 };
