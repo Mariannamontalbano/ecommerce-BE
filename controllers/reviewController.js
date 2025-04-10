@@ -68,3 +68,22 @@ exports.deleteReview = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+// ✅ Aggiunge un like a una recensione
+exports.likeReview = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const review = await Review.findByPk(id);
+    if (!review) {
+      return res.status(404).json({ error: 'Recensione non trovata' });
+    }
+
+    review.likes = (review.likes || 0) + 1;
+    await review.save();
+
+    res.status(200).json(review);
+  } catch (error) {
+    console.error('Errore nel mettere mi piace:', error);
+    res.status(500).json({ error: 'Errore nel mettere mi piace' });
+  }
+};
